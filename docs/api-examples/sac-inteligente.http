@@ -1,0 +1,199 @@
+@baseUrl = http://localhost:3000
+@token = change-me
+
+###
+# List stores
+# GET /stores — returns active stores only
+GET {{baseUrl}}/stores
+Authorization: Bearer {{token}}
+
+###
+# Create Attendance
+# POST /sac-attendances — 201 when new, body.reused=false
+POST {{baseUrl}}/sac-attendances
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "externalConversationId": "conversation-001",
+  "lastSummary": "Resumo inicial do atendimento"
+}
+
+###
+# Reuse Attendance
+# POST /sac-attendances — 200 when open attendance exists for same externalConversationId, body.reused=true
+POST {{baseUrl}}/sac-attendances
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "externalConversationId": "conversation-001",
+  "lastSummary": "Resumo atualizado na reutilização",
+  "lastMessageAt": "2026-05-24T12:00:00.000Z"
+}
+
+###
+# Close Attendance without Case
+# PATCH /sac-attendances/:id — orientative category, no active case
+# Requires: status=fechado, detectedCategory (orientative), lastSummary
+PATCH {{baseUrl}}/sac-attendances/attendance-id-aqui
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "fechado",
+  "detectedCategory": "INFORMACAO_LOJA",
+  "lastSummary": "Cliente orientado e atendimento encerrado sem abertura de caso"
+}
+
+###
+# Cancel Attendance
+# PATCH /sac-attendances/:id — allowed from started or collecting_data
+# Requires: status=cancelled, cancellationReason
+# When cancellationReason=other, lastSummary is also required
+PATCH {{baseUrl}}/sac-attendances/attendance-id-aqui
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "cancelled",
+  "cancellationReason": "timeout"
+}
+
+###
+# Create Case
+# POST /sac-cases — 201, moves attendance to waiting_resolution
+POST {{baseUrl}}/sac-cases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "attendanceId": "attendance-id-aqui",
+  "category": "DENUNCIA",
+  "description": "Cliente relatou um problema importante com detalhes suficientes.",
+  "storeId": "store-id-aqui"
+}
+
+###
+# Mark Case sent to DKW
+# PATCH /sac-cases/:id/status — transition registered -> sent_to_dkw
+PATCH {{baseUrl}}/sac-cases/case-id-aqui/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "sent_to_dkw"
+}
+
+###
+# Mark Case in resolution
+# PATCH /sac-cases/:id/status — transition registered|sent_to_dkw -> in_resolution
+PATCH {{baseUrl}}/sac-cases/case-id-aqui/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "in_resolution"
+}
+
+###
+# Resolve Case
+# PATCH /sac-cases/:id/status — moves attendance to pesquisa_satisfacao
+PATCH {{baseUrl}}/sac-cases/case-id-aqui/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "resolved"
+}
+
+###
+# Cancel Case
+# POST /sac-cases/:id/cancel — 200
+POST {{baseUrl}}/sac-cases/case-id-aqui/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "caseCancellationReason": "operational_duplicate"
+}
+
+###
+# Mark Protocol sent
+# POST /sac-cases/:id/protocol-sent — 200, sentAt optional (ISO 8601)
+POST {{baseUrl}}/sac-cases/case-id-aqui/protocol-sent
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "sentAt": "2026-05-24T15:30:00.000Z"
+}
+
+###
+# Register media
+# POST /sac-media — 201 when new, 200 when idempotent reuse
+# Provide attendanceId OR externalConversationId (not both required, one is enough)
+POST {{baseUrl}}/sac-media
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "attendanceId": "attendance-id-aqui",
+  "externalMediaId": "media-001",
+  "sourceUrl": "https://example.com/media.jpg",
+  "mimeType": "image/jpeg",
+  "size": 123456,
+  "purpose": "productImage"
+}
+
+###
+# Send Satisfaction Response
+# POST /sac-attendances/:attendanceId/satisfaction-response — 201
+# Attendance must be in pesquisa_satisfacao
+POST {{baseUrl}}/sac-attendances/attendance-id-aqui/satisfaction-response
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "problemResolvedByCustomer": true,
+  "rating": 5,
+  "comment": "Atendimento excelente"
+}
+
+###
+# Close without satisfaction
+# PATCH /sac-attendances/:id — only from pesquisa_satisfacao
+# Requires: status=fechado, closedWithoutSatisfaction=true
+PATCH {{baseUrl}}/sac-attendances/attendance-id-aqui
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "fechado",
+  "closedWithoutSatisfaction": true
+}
+
+###
+# Read Attendance detail
+# GET /sac-attendances/:id
+GET {{baseUrl}}/sac-attendances/attendance-id-aqui
+Authorization: Bearer {{token}}
+
+###
+# Read Attendance by external conversation
+# GET /sac-attendances/by-external-conversation/:externalConversationId
+# Returns most recent open attendance for the conversation
+GET {{baseUrl}}/sac-attendances/by-external-conversation/conversation-001
+Authorization: Bearer {{token}}
+
+###
+# Read Case by id
+# GET /sac-cases/:id
+GET {{baseUrl}}/sac-cases/case-id-aqui
+Authorization: Bearer {{token}}
+
+###
+# Read Case by Protocol
+# GET /sac-cases/by-protocol/:protocol
+GET {{baseUrl}}/sac-cases/by-protocol/SAC-20260524-000001
+Authorization: Bearer {{token}}
