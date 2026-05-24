@@ -10,6 +10,7 @@ export class CreateAttendanceDto {
   @IsNotEmpty()
   lastSummary?: string;
 
+  /** Accepted for n8n compatibility but never persisted. */
   @IsOptional()
   @IsDateString()
   lastMessageAt?: string;

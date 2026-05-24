@@ -5,9 +5,10 @@ import { IntegrationTokenGuard } from './common/auth/integration-token.guard';
 import { RequestLoggingInterceptor } from './common/logging/request-logging.interceptor';
 import { PrismaModule } from './prisma/prisma.module';
 import { StoresModule } from './stores/stores.module';
+import { AttendancesModule } from './attendances/attendances.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, StoresModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, StoresModule, AttendancesModule],
   providers: [
     RequestLoggingInterceptor,
     {
