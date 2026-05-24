@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AttendanceStatus {
+  started
+  collecting_data
+  waiting_resolution
+  pesquisa_satisfacao
+  fechado
+  cancelled
+}
+
+enum CaseStatus {
+  registered
+  sent_to_dkw
+  in_resolution
+  resolved
+  cancelled
+}
+
+enum AttendanceCategory {
+  DENUNCIA
+  MAU_ATENDIMENTO
+  ESTRUTURA_OPERACAO
+  PRODUTO_ESTRAGADO
+  PRODUTO_AVARIA
+  PRODUTO_EM_FALTA
+  RH
+  DP
+  CURRICULO
+  FORNECEDOR
+  PRECO_PRODUTO
+  INFORMACAO_LOJA
+}
+
+enum AttendanceCancellationReason {
+  customer_gave_up
+  operational_duplicate
+  invalid_message
+  spam
+  timeout
+  other
+}
+
+enum CaseCancellationReason {
+  operational_duplicate
+  created_by_mistake
+  wrong_routing
+  other
+}
+
+enum MediaPurpose {
+  productImage
+  receiptImage
+  storePhoto
+  other
+}
+
+model Store {
+  id                String    @id @default(cuid())
+  internalStoreCode String    @unique
+  name              String
+  city              String
+  state             String
+  address           String
+  active            Boolean   @default(true)
+  aliases           Json
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  cases             SacCase[]
+}
+
+model Attendance {
+  id                        String                        @id @default(cuid())
+  externalConversationId    String
+  status                    AttendanceStatus              @default(started)
+  detectedCategory          AttendanceCategory?
+  lastSummary               String?
+  closedAt                  DateTime?
+  closedWithoutSatisfaction Boolean                       @default(false)
+  cancellationReason        AttendanceCancellationReason?
+  satisfactionRequestedAt   DateTime?
+  satisfactionRespondedAt   DateTime?
+  createdAt                 DateTime                      @default(now())
+  updatedAt                 DateTime                      @updatedAt
+  cases                     SacCase[]
+  media                     Media[]
+  satisfactionResponse      SatisfactionResponse?
+
+  @@index([externalConversationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SacCase {
+  id                       String                  @id @default(cuid())
+  attendanceId             String
+  protocol                 String                  @unique
+  category                 AttendanceCategory
+  description              String
+  status                   CaseStatus              @default(registered)
+  storeId                  String?
+  rawStoreMention          String?
+  needsHumanReview         Boolean                 @default(false)
+  missingRequiredFields    Json                    @default("[]")
+  riskFlag                 Boolean                 @default(false)
+  riskReasons              Json                    @default("[]")
+  caseCancellationReason   CaseCancellationReason?
+  sentToDkwAt              DateTime?
+  resolvedAt               DateTime?
+  cancelledAt              DateTime?
+  protocolSentToCustomerAt DateTime?
+  replacedByCaseId         String?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  attendance               Attendance              @relation(fields: [attendanceId], references: [id])
+  store                    Store?                  @relation(fields: [storeId], references: [id])
+  replacedByCase           SacCase?                @relation("CaseReplacement", fields: [replacedByCaseId], references: [id])
+  replacedCases            SacCase[]               @relation("CaseReplacement")
+  media                    Media[]
+
+  @@index([attendanceId])
+  @@index([status])
+  @@index([protocol])
+}
+
+model Media {
+  id                String        @id @default(cuid())
+  attendanceId      String
+  caseId            String?
+  externalMediaId   String
+  sourceUrl         String?
+  storageProvider   String        @default("external")
+  storageStatus     String?
+  internalObjectKey String?
+  mimeType          String?
+  size              Int?
+  purpose           MediaPurpose?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  attendance        Attendance    @relation(fields: [attendanceId], references: [id])
+  case              SacCase?      @relation(fields: [caseId], references: [id])
+
+  @@unique([storageProvider, externalMediaId])
+  @@index([attendanceId])
+  @@index([caseId])
+}
+
+model SatisfactionResponse {
+  id                        String     @id @default(cuid())
+  attendanceId              String     @unique
+  problemResolvedByCustomer Boolean
+  rating                    Int
+  comment                   String?
+  createdAt                 DateTime   @default(now())
+  updatedAt                 DateTime   @updatedAt
+  attendance                Attendance @relation(fields: [attendanceId], references: [id])
+}
+
+model ProtocolSequence {
+  id           String   @id @default(cuid())
+  protocolDate String   @unique
+  lastSequence Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
