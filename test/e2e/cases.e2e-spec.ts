@@ -294,7 +294,7 @@ describe('SAC Cases (e2e)', () => {
       const attendance = await createAttendance(prisma, 'started');
       const inactiveStore = await prisma.store.create({
         data: {
-          internalStoreCode: '307',
+          internalStoreCode: uniqueCode('inactive'),
           name: 'Loja Inativa',
           city: 'Bage',
           state: 'RS',

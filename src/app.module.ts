@@ -6,9 +6,20 @@ import { RequestLoggingInterceptor } from './common/logging/request-logging.inte
 import { PrismaModule } from './prisma/prisma.module';
 import { StoresModule } from './stores/stores.module';
 import { AttendancesModule } from './attendances/attendances.module';
+import { CasesModule } from './cases/cases.module';
+import { MediaModule } from './media/media.module';
+import { SatisfactionModule } from './satisfaction/satisfaction.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, StoresModule, AttendancesModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    StoresModule,
+    AttendancesModule,
+    CasesModule,
+    MediaModule,
+    SatisfactionModule,
+  ],
   providers: [
     RequestLoggingInterceptor,
     {
