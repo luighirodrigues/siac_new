@@ -217,6 +217,23 @@ describe('SAC Cases (e2e)', () => {
         .expect(409);
     });
 
+    it('rejects duplicate active case with 409 after attendance moved to waiting_resolution', async () => {
+      const store = await createActiveStore(prisma, uniqueCode('303-waiting'));
+      const attendance = await createAttendance(prisma, 'waiting_resolution');
+      await createCaseDirect(prisma, {
+        attendanceId: attendance.id,
+        status: 'sent_to_dkw',
+        storeId: store.id,
+        sentToDkwAt: new Date(),
+      });
+
+      await request(app.getHttpServer())
+        .post('/sac-cases')
+        .set(authHeader())
+        .send(validCreatePayload(attendance.id, store.id))
+        .expect(409);
+    });
+
     it('allows new case when previous case is cancelled', async () => {
       const store = await createActiveStore(prisma, uniqueCode('304'));
       const attendance = await createAttendance(prisma, 'started');

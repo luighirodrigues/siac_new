@@ -622,6 +622,29 @@ describe('SAC Attendances (e2e)', () => {
   });
 
   describe('PATCH /sac-attendances/:id', () => {
+    it('moves started attendance to collecting_data and stores lastSummary', async () => {
+      const attendance = await prisma.attendance.create({
+        data: {
+          externalConversationId: 'patch-start-collecting',
+          status: 'started',
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .patch(`/sac-attendances/${attendance.id}`)
+        .set(authHeader())
+        .send({
+          status: 'collecting_data',
+          lastSummary: 'Cliente relatou problema inicial e precisa informar loja.',
+        })
+        .expect(200);
+
+      expect(response.body.status).toBe('collecting_data');
+      expect(response.body.lastSummary).toBe(
+        'Cliente relatou problema inicial e precisa informar loja.',
+      );
+    });
+
     it('cancel from started', async () => {
       const attendance = await prisma.attendance.create({
         data: {

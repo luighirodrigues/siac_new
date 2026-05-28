@@ -130,6 +130,19 @@ export class CasesService {
         throw new NotFoundException('Attendance not found');
       }
 
+      const existingActiveCase = await tx.sacCase.findFirst({
+        where: {
+          attendanceId: dto.attendanceId,
+          status: {
+            not: 'cancelled',
+          },
+        },
+      });
+
+      if (existingActiveCase) {
+        throw new ConflictException('Attendance already has a non-cancelled case');
+      }
+
       if (!CASE_CREATION_ALLOWED_ATTENDANCE_STATUSES.includes(attendance.status)) {
         throw new BadRequestException('Attendance status does not allow case creation');
       }
@@ -166,19 +179,6 @@ export class CasesService {
 
       if (dto.riskFlag === true && riskReasons.length === 0) {
         throw new BadRequestException('riskReasons is required when riskFlag=true');
-      }
-
-      const existingActiveCase = await tx.sacCase.findFirst({
-        where: {
-          attendanceId: dto.attendanceId,
-          status: {
-            not: 'cancelled',
-          },
-        },
-      });
-
-      if (existingActiveCase) {
-        throw new ConflictException('Attendance already has a non-cancelled case');
       }
 
       const replacementCandidates = await tx.sacCase.findMany({

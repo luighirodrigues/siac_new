@@ -191,6 +191,10 @@ export class AttendancesService {
   async patch(id: string, dto: PatchAttendanceDto): Promise<AttendanceDetail> {
     const attendance = await this.findById(id);
 
+    if (dto.status === 'collecting_data') {
+      return this.moveToCollectingData(attendance, dto);
+    }
+
     if (dto.status === 'cancelled') {
       return this.cancelAttendance(attendance, dto);
     }
@@ -204,6 +208,25 @@ export class AttendancesService {
     }
 
     throw new BadRequestException('Unsupported patch transition');
+  }
+
+  private async moveToCollectingData(attendance: AttendanceDetail, dto: PatchAttendanceDto) {
+    if (!['started', 'collecting_data'].includes(attendance.status)) {
+      throw new BadRequestException('Attendance cannot collect data from current status');
+    }
+
+    if (!dto.lastSummary) {
+      throw new BadRequestException('lastSummary is required');
+    }
+
+    return this.prisma.attendance.update({
+      where: { id: attendance.id },
+      data: {
+        status: 'collecting_data',
+        lastSummary: dto.lastSummary,
+      },
+      include: attendanceDetailInclude,
+    });
   }
 
   private async cancelAttendance(attendance: AttendanceDetail, dto: PatchAttendanceDto) {
