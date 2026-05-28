@@ -10,6 +10,7 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/configure-app';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { authHeader } from '../helpers/auth';
+import { resetDatabase } from '../helpers/database';
 import { createActiveStore } from '../helpers/fixtures';
 
 jest.setTimeout(30000);
@@ -110,6 +111,10 @@ describe('SAC Cases (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(async () => {
+    await resetDatabase(prisma);
   });
 
   describe('POST /sac-cases', () => {
@@ -430,6 +435,47 @@ describe('SAC Cases (e2e)', () => {
       expect(response.body.riskReasons).toEqual(['social_media']);
       expect(response.body.needsHumanReview).toBe(false);
     });
+
+    it('rejects unknown values in missingRequiredFields', async () => {
+      const store = await createActiveStore(prisma, uniqueCode('313'));
+      const attendance = await createAttendance(prisma, 'started');
+
+      await request(app.getHttpServer())
+        .post('/sac-cases')
+        .set(authHeader())
+        .send({
+          ...validCreatePayload(attendance.id, store.id),
+          missingRequiredFields: ['campoInvalido'],
+        })
+        .expect(400);
+    });
+
+    it('rejects unknown values in riskReasons', async () => {
+      const store = await createActiveStore(prisma, uniqueCode('314'));
+      const attendance = await createAttendance(prisma, 'started');
+
+      await request(app.getHttpServer())
+        .post('/sac-cases')
+        .set(authHeader())
+        .send({
+          ...validCreatePayload(attendance.id, store.id),
+          riskReasons: ['motivoInvalido'],
+        })
+        .expect(400);
+    });
+
+    it('handles concurrent duplicate case creation with 409', async () => {
+      const store = await createActiveStore(prisma, uniqueCode('315'));
+      const attendance = await createAttendance(prisma, 'started');
+      const payload = validCreatePayload(attendance.id, store.id);
+
+      const [first, second] = await Promise.all([
+        request(app.getHttpServer()).post('/sac-cases').set(authHeader()).send(payload),
+        request(app.getHttpServer()).post('/sac-cases').set(authHeader()).send(payload),
+      ]);
+
+      expect([first.status, second.status].sort()).toEqual([201, 409]);
+    });
   });
 
   describe('PATCH /sac-cases/:id/status', () => {
@@ -666,7 +712,7 @@ describe('SAC Cases (e2e)', () => {
       expect(updatedAttendance.status).toBe('collecting_data');
     });
 
-    it('may cancel attendance when requested and there is no useful demand left', async () => {
+    it('may cancel attendance automatically when no useful demand remains', async () => {
       const attendance = await createAttendance(prisma, 'waiting_resolution');
       const caseItem = await createCaseDirect(prisma, {
         attendanceId: attendance.id,
@@ -678,8 +724,8 @@ describe('SAC Cases (e2e)', () => {
         .set(authHeader())
         .send({
           caseCancellationReason: 'other',
+          lastSummary: 'Demanda encerrada sem continuidade.',
           returnAttendanceToCollectingData: false,
-          cancelAttendanceIfNoUsefulDemand: true,
         })
         .expect(200);
 
@@ -688,6 +734,7 @@ describe('SAC Cases (e2e)', () => {
       });
       expect(updatedAttendance.status).toBe('cancelled');
       expect(updatedAttendance.closedAt).not.toBeNull();
+      expect(updatedAttendance.lastSummary).toBe('Demanda encerrada sem continuidade.');
     });
   });
 

@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAC Inteligente — API n8n</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --panel: #ffffff;
+      --border: #e8e8e8;
+      --text: #3b4151;
+      --muted: #6b7280;
+      --get: #61affe;
+      --post: #49cc90;
+      --patch: #fca130;
+      --sidebar: #1b1b1b;
+      --sidebar-text: #f0f0f0;
+      --sidebar-muted: #9a9a9a;
+      --code-bg: #41444e;
+      --accent: #89bf04;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    aside {
+      background: var(--sidebar);
+      color: var(--sidebar-text);
+      padding: 24px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    aside h1 {
+      font-size: 1.1rem;
+      margin: 0 0 4px;
+      color: #fff;
+    }
+
+    aside .subtitle {
+      font-size: 0.8rem;
+      color: var(--sidebar-muted);
+      margin-bottom: 20px;
+    }
+
+    aside nav a {
+      display: block;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+    }
+
+    aside nav a:hover { background: rgba(255,255,255,0.08); }
+
+    aside .group {
+      margin-top: 18px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    main {
+      padding: 28px 36px 80px;
+      max-width: 980px;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    .hero h2 { margin: 0 0 8px; font-size: 1.6rem; }
+    .hero p { margin: 0 0 12px; color: var(--muted); }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+
+    .auth-box {
+      margin-top: 16px;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    .auth-box code {
+      background: var(--code-bg);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+
+    section.endpoint {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .endpoint-header:hover { background: #fcfcfc; }
+
+    .method {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      min-width: 62px;
+      text-align: center;
+    }
+
+    .method.get { background: var(--get); }
+    .method.post { background: var(--post); }
+    .method.patch { background: var(--patch); }
+
+    .path {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .summary {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .endpoint-body {
+      padding: 18px;
+      display: none;
+    }
+
+    section.endpoint.open .endpoint-body { display: block; }
+
+    .endpoint-body p { margin-top: 0; color: var(--muted); font-size: 0.92rem; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; }
+      .grid-2 { grid-template-columns: 1fr; }
+      main { padding: 20px 16px 60px; }
+    }
+
+    h4 {
+      margin: 18px 0 8px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: #f3f4f6; font-weight: 600; }
+
+    pre {
+      background: var(--code-bg);
+      color: #e8e8e8;
+      padding: 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .status-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 0;
+    }
+
+    .status-list span {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #f3f4f6;
+      border: 1px solid var(--border);
+      font-family: monospace;
+    }
+
+    .note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      color: #92400e;
+    }
+
+    .responses td:first-child {
+      font-family: monospace;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h1>SAC Inteligente</h1>
+      <div class="subtitle">API para integração n8n · MVP</div>
+
+      <div class="group">Lojas</div>
+      <nav>
+        <a href="#get-stores">GET /stores</a>
+      </nav>
+
+      <div class="group">Atendimentos</div>
+      <nav>
+        <a href="#post-attendance">POST /sac-attendances</a>
+        <a href="#patch-attendance">PATCH /sac-attendances/:id</a>
+        <a href="#get-attendance-list">GET /sac-attendances</a>
+        <a href="#get-attendance-id">GET /sac-attendances/:id</a>
+        <a href="#get-attendance-ext">GET …/by-external-conversation/:id</a>
+        <a href="#post-satisfaction">POST …/satisfaction-response</a>
+      </nav>
+
+      <div class="group">Chamados</div>
+      <nav>
+        <a href="#post-case">POST /sac-cases</a>
+        <a href="#patch-case-status">PATCH /sac-cases/:id/status</a>
+        <a href="#post-case-cancel">POST /sac-cases/:id/cancel</a>
+        <a href="#post-protocol-sent">POST /sac-cases/:id/protocol-sent</a>
+        <a href="#get-case-id">GET /sac-cases/:id</a>
+        <a href="#get-case-protocol">GET /sac-cases/by-protocol/:protocol</a>
+      </nav>
+
+      <div class="group">Mídia</div>
+      <nav>
+        <a href="#post-media">POST /sac-media</a>
+      </nav>
+
+      <div class="group">Referência</div>
+      <nav>
+        <a href="#enums">Enums e regras</a>
+        <a href="#errors">Erros comuns</a>
+      </nav>
+    </aside>
+
+    <main>
+      <div class="hero">
+        <h2>SAC Inteligente Peruzzo — Referência n8n</h2>
+        <p>Backend MVP para registrar atendimentos, chamados, mídia e satisfação. O n8n orquestra a conversa; esta API guarda o estado estruturado.</p>
+        <div class="badge-row">
+          <span class="badge">Base URL: http://localhost:3000</span>
+          <span class="badge">Content-Type: application/json</span>
+          <span class="badge">Auth em todos os endpoints</span>
+        </div>
+        <div class="auth-box">
+          <strong>Autenticação</strong> — envie o token de integração em <strong>todas</strong> as requisições:<br /><br />
+          <code>Authorization: Bearer &lt;N8N_INTEGRATION_TOKEN&gt;</code><br />
+          ou <code>x-integration-token: &lt;N8N_INTEGRATION_TOKEN&gt;</code>
+        </div>
+      </div>
+
+      <!-- STORES -->
+      <section class="endpoint open" id="get-stores">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/stores</span>
+          <span class="summary">Listar lojas ativas</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Retorna todas as lojas com <code>active: true</code>, ordenadas por nome. Sem paginação.</p>
+          <h4>Resposta 200</h4>
+          <pre>[
+  {
+    "id": "clx...",
+    "internalStoreCode": "001",
+    "name": "Peruzzo Centro",
+    "city": "Bagé",
+    "state": "RS",
+    "address": "Rua exemplo, 100",
+    "active": true,
+    "aliases": ["centro", "loja centro"]
+  }
+]</pre>
+        </div>
+      </section>
+
+      <!-- ATTENDANCE CREATE -->
+      <section class="endpoint" id="post-attendance">
+        <div class="endpoint-header">
+          <span class="method post">POST</span>
+          <span class="path">/sac-attendances</span>
+          <span class="summary">Criar ou reutilizar atendimento</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Idempotente por <code>externalConversationId</code> enquanto houver atendimento aberto. Abertos: <code>started</code>, <code>collecting_data</code>, <code>waiting_resolution</code>, <code>pesquisa_satisfacao</code>.</p>
+          <div class="grid-2">
+            <div>
+              <h4>Body</h4>
+              <table>
+                <tr><th>Campo</th><th>Obrig.</th><th>Descrição</th></tr>
+                <tr><td><code>externalConversationId</code></td><td>sim</td><td>ID da conversa DKW</td></tr>
+                <tr><td><code>lastSummary</code></td><td>não</td><td>Resumo operacional do ciclo</td></tr>
+                <tr><td><code>lastMessageAt</code></td><td>não</td><td>Aceito mas <strong>nunca salvo</strong></td></tr>
+              </table>
+            </div>
+            <div>
+              <h4>Respostas</h4>
+              <table class="responses">
+                <tr><td>201</td><td>Novo atendimento — <code>reused: false</code></td></tr>
+                <tr><td>200</td><td>Reutilizado — <code>reused: true</code>, pode atualizar <code>lastSummary</code></td></tr>
+              </table>
+            </div>
+          </div>
+          <h4>Exemplo n8n</h4>
+          <pre>{
+  "externalConversationId": "dkw-conversation-id",
+  "lastSummary": "Cliente iniciou contato sobre produto"
+}</pre>
+          <h4>Shape do atendimento retornado</h4>
+          <pre>{
+  "reused": false,
+  "attendance": {
+    "id": "...",
+    "externalConversationId": "dkw-conversation-id",
+    "status": "started",
+    "detectedCategory": null,
+    "lastSummary": "...",
+    "closedAt": null,
+    "closedWithoutSatisfaction": false,
+    "cancellationReason": null,
+    "satisfactionRequestedAt": null,
+    "satisfactionRespondedAt": null,
+    "cases": [],
+    "media": [],
+    "satisfactionResponse": null
+  }
+}</pre>
+        </div>
+      </section>
+
+      <!-- ATTENDANCE PATCH -->
+      <section class="endpoint" id="patch-attendance">
+        <div class="endpoint-header">
+          <span class="method patch">PATCH</span>
+          <span class="path">/sac-attendances/:id</span>
+          <span class="summary">Cancelar, fechar ou encerrar sem satisfação</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Transições estreitas permitidas no MVP. Sempre envie <code>status</code> alvo.</p>
+
+          <h4>1 — Cancelar (started ou collecting_data)</h4>
+          <pre>{
+  "status": "cancelled",
+  "cancellationReason": "timeout",
+  "lastSummary": "Obrigatório quando cancellationReason = other"
+}</pre>
+          <p>Motivos: <code>customer_gave_up</code>, <code>operational_duplicate</code>, <code>invalid_message</code>, <code>spam</code>, <code>timeout</code>, <code>other</code>. Preenche <code>closedAt</code>.</p>
+
+          <h4>2 — Fechar sem chamado (categoria orientativa)</h4>
+          <pre>{
+  "status": "fechado",
+  "detectedCategory": "INFORMACAO_LOJA",
+  "lastSummary": "Cliente recebeu orientação validada."
+}</pre>
+          <p>Categorias orientativas: <code>RH</code>, <code>DP</code>, <code>CURRICULO</code>, <code>FORNECEDOR</code>, <code>INFORMACAO_LOJA</code>. Rejeita se já existir chamado não cancelado.</p>
+
+          <h4>3 — Fechar sem satisfação (pesquisa_satisfacao)</h4>
+          <pre>{
+  "status": "fechado",
+  "closedWithoutSatisfaction": true
+}</pre>
+          <p>Só aceito em <code>pesquisa_satisfacao</code>. Preenche <code>closedAt</code>.</p>
+        </div>
+      </section>
+
+      <!-- ATTENDANCE LIST -->
+      <section class="endpoint" id="get-attendance-list">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/sac-attendances</span>
+          <span class="summary">Listar atendimentos</span>
+        </div>
+        <div class="endpoint-body">
+          <h4>Query params</h4>
+          <table>
+            <tr><th>Param</th><th>Descrição</th></tr>
+            <tr><td><code>status</code></td><td>Filtrar por status</td></tr>
+            <tr><td><code>externalConversationId</code></td><td>Filtrar conversa</td></tr>
+            <tr><td><code>createdFrom</code>, <code>createdTo</code></td><td>Intervalo de criação (ISO)</td></tr>
+            <tr><td><code>hasCase</code></td><td><code>true</code> / <code>false</code> — tem chamado não cancelado</td></tr>
+            <tr><td><code>page</code></td><td>Padrão 1</td></tr>
+            <tr><td><code>limit</code></td><td>Padrão 20, máximo 100</td></tr>
+          </table>
+          <div class="note">Ordenação: mais recentes primeiro.</div>
+        </div>
+      </section>
+
+      <!-- ATTENDANCE BY ID -->
+      <section class="endpoint" id="get-attendance-id">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/sac-attendances/:id</span>
+          <span class="summary">Detalhe do atendimento</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Retorna shape completo com chamados, mídia do ciclo e resposta de satisfação (se houver).</p>
+          <table class="responses">
+            <tr><td>200</td><td>Detalhe completo</td></tr>
+            <tr><td>404</td><td>Atendimento não encontrado</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- ATTENDANCE BY EXTERNAL -->
+      <section class="endpoint" id="get-attendance-ext">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/sac-attendances/by-external-conversation/:externalConversationId</span>
+          <span class="summary">Atendimento aberto da conversa</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Retorna o atendimento aberto mais recente para a conversa externa. Mesmo shape de GET por id.</p>
+          <table class="responses">
+            <tr><td>200</td><td>Atendimento aberto encontrado</td></tr>
+            <tr><td>404</td><td>Nenhum atendimento aberto</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- SATISFACTION -->
+      <section class="endpoint" id="post-satisfaction">
+        <div class="endpoint-header">
+          <span class="method post">POST</span>
+          <span class="path">/sac-attendances/:attendanceId/satisfaction-response</span>
+          <span class="summary">Registrar satisfação</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Só aceito com atendimento em <code>pesquisa_satisfacao</code>. Uma resposta por atendimento. Fecha o ciclo (<code>fechado</code> + <code>closedAt</code>).</p>
+          <pre>{
+  "problemResolvedByCustomer": true,
+  "rating": 5,
+  "comment": "Opcional"
+}</pre>
+          <table class="responses">
+            <tr><td>201</td><td>Resposta criada, atendimento fechado</td></tr>
+            <tr><td>409</td><td>Resposta duplicada</td></tr>
+            <tr><td>400</td><td>Status inválido ou payload inválido</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- CASE CREATE -->
+      <section class="endpoint" id="post-case">
+        <div class="endpoint-header">
+          <span class="method post">POST</span>
+          <span class="path">/sac-cases</span>
+          <span class="summary">Criar chamado + protocolo</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Só quando atendimento está em <code>started</code> ou <code>collecting_data</code>. Move atendimento para <code>waiting_resolution</code>. Gera protocolo <code>SAC-YYYYMMDD-000001</code>.</p>
+          <pre>{
+  "attendanceId": "attendance-id",
+  "category": "PRODUTO_ESTRAGADO",
+  "description": "Descrição sintetizada pelo n8n (10–2000 chars).",
+  "storeId": "store-id",
+  "rawStoreMention": "loja da rua x",
+  "needsHumanReview": false,
+  "missingRequiredFields": [],
+  "riskFlag": false,
+  "riskReasons": [],
+  "markAsSentToDkw": false
+}</pre>
+          <div class="note">Categorias que geram chamado: DENUNCIA, MAU_ATENDIMENTO, ESTRUTURA_OPERACAO, PRODUTO_ESTRAGADO, PRODUTO_AVARIA, PRODUTO_EM_FALTA, PRECO_PRODUTO. Rejeita RH, DP, CURRICULO, FORNECEDOR, INFORMACAO_LOJA.</div>
+          <table class="responses">
+            <tr><td>201</td><td>Chamado criado com protocolo</td></tr>
+            <tr><td>409</td><td>Já existe chamado não cancelado no atendimento</td></tr>
+            <tr><td>400</td><td>Status, loja, categoria ou validação inválidos</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- CASE STATUS -->
+      <section class="endpoint" id="patch-case-status">
+        <div class="endpoint-header">
+          <span class="method patch">PATCH</span>
+          <span class="path">/sac-cases/:id/status</span>
+          <span class="summary">Transição de status do chamado</span>
+        </div>
+        <div class="endpoint-body">
+          <pre>{ "status": "sent_to_dkw" }</pre>
+          <p>Valores permitidos: <code>sent_to_dkw</code>, <code>in_resolution</code>, <code>resolved</code>.</p>
+          <ul style="color: var(--muted); font-size: 0.92rem;">
+            <li><code>sent_to_dkw</code> — idempotente, preserva <code>sentToDkwAt</code></li>
+            <li><code>in_resolution</code> — idempotente</li>
+            <li><code>resolved</code> — move atendimento para <code>pesquisa_satisfacao</code>, preenche <code>satisfactionRequestedAt</code></li>
+          </ul>
+          <div class="note">Marcar <code>markAsSentToDkw: true</code> no POST /sac-cases já cria como <code>sent_to_dkw</code>.</div>
+        </div>
+      </section>
+
+      <!-- CASE CANCEL -->
+      <section class="endpoint" id="post-case-cancel">
+        <div class="endpoint-header">
+          <span class="method post">POST</span>
+          <span class="path">/sac-cases/:id/cancel</span>
+          <span class="summary">Cancelar chamado</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Apenas antes de <code>resolved</code>.</p>
+          <pre>{
+  "caseCancellationReason": "wrong_routing",
+  "lastSummary": "Opcional para explicar a correcao.",
+  "returnAttendanceToCollectingData": true
+}</pre>
+          <p>Motivos: <code>operational_duplicate</code>, <code>created_by_mistake</code>, <code>wrong_routing</code>, <code>other</code>.</p>
+          <p><code>returnAttendanceToCollectingData: true</code> só para <code>created_by_mistake</code> ou <code>wrong_routing</code>. Se não retornar para coleta e não restar demanda útil, o atendimento é cancelado automaticamente.</p>
+        </div>
+      </section>
+
+      <!-- PROTOCOL SENT -->
+      <section class="endpoint" id="post-protocol-sent">
+        <div class="endpoint-header">
+          <span class="method post">POST</span>
+          <span class="path">/sac-cases/:id/protocol-sent</span>
+          <span class="summary">Marcar protocolo enviado ao cliente</span>
+        </div>
+        <div class="endpoint-body">
+          <pre>{ "sentAt": "2026-05-24T12:00:00.000Z" }</pre>
+          <p><code>sentAt</code> opcional — usa horário do backend se omitido. Idempotente: nunca sobrescreve o primeiro timestamp.</p>
+        </div>
+      </section>
+
+      <!-- CASE BY ID -->
+      <section class="endpoint" id="get-case-id">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/sac-cases/:id</span>
+          <span class="summary">Detalhe do chamado</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Chamado completo + atendimento resumido (<code>attendanceId</code>, <code>status</code>, <code>externalConversationId</code>, <code>createdAt</code>, <code>closedAt</code>).</p>
+        </div>
+      </section>
+
+      <!-- CASE BY PROTOCOL -->
+      <section class="endpoint" id="get-case-protocol">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/sac-cases/by-protocol/:protocol</span>
+          <span class="summary">Buscar por protocolo</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Case-insensitive, trim de espaços, exige hífens. Encontra chamados cancelados. Inclui <code>replacedBy</code> quando houver substituto.</p>
+          <pre>GET /sac-cases/by-protocol/SAC-20260524-000001</pre>
+          <div class="note">GET /sac-cases (sem id) retorna 404 — não existe listagem global no MVP.</div>
+        </div>
+      </section>
+
+      <!-- MEDIA -->
+      <section class="endpoint" id="post-media">
+        <div class="endpoint-header">
+          <span class="method post">POST</span>
+          <span class="path">/sac-media</span>
+          <span class="summary">Registrar mídia (metadados)</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Idempotente por <code>storageProvider</code> + <code>externalMediaId</code>. Não baixa arquivo — só referência. Nunca cria chamado sozinha.</p>
+          <pre>{
+  "attendanceId": "attendance-id",
+  "externalConversationId": "dkw-conversation-id",
+  "caseId": null,
+  "externalMediaId": "dkw-media-id",
+  "storageProvider": "external",
+  "sourceUrl": "https://example.com/media.jpg",
+  "mimeType": "image/jpeg",
+  "size": 123456,
+  "purpose": "productImage"
+}</pre>
+          <table>
+            <tr><th>Campo</th><th>Regra</th></tr>
+            <tr><td><code>attendanceId</code> ou <code>externalConversationId</code></td><td>Pelo menos um obrigatório</td></tr>
+            <tr><td><code>caseId</code></td><td>Opcional; se informado, deve pertencer ao atendimento</td></tr>
+            <tr><td><code>storageProvider</code></td><td>Padrão <code>external</code></td></tr>
+            <tr><td><code>purpose</code></td><td><code>productImage</code>, <code>receiptImage</code>, <code>storePhoto</code>, <code>other</code></td></tr>
+          </table>
+          <table class="responses">
+            <tr><td>201</td><td>Nova mídia — <code>created: true</code></td></tr>
+            <tr><td>200</td><td>Reutilizada — <code>created: false</code></td></tr>
+            <tr><td>400</td><td>Atendimento em pesquisa_satisfacao ou validação</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- ENUMS -->
+      <section class="endpoint open" id="enums">
+        <div class="endpoint-header">
+          <span class="method get" style="background:#6b7280;">REF</span>
+          <span class="path">Enums e regras rápidas</span>
+          <span class="summary">Consulta</span>
+        </div>
+        <div class="endpoint-body">
+          <h4>Status do atendimento</h4>
+          <div class="status-list">
+            <span>started</span><span>collecting_data</span><span>waiting_resolution</span>
+            <span>pesquisa_satisfacao</span><span>fechado</span><span>cancelled</span>
+          </div>
+
+          <h4>Status do chamado</h4>
+          <div class="status-list">
+            <span>registered</span><span>sent_to_dkw</span><span>in_resolution</span>
+            <span>resolved</span><span>cancelled</span>
+          </div>
+
+          <h4>missingRequiredFields (fechado)</h4>
+          <div class="status-list">
+            <span>denuncianteName</span><span>cpfDenunciante</span><span>productImage</span>
+            <span>storeId</span><span>purchaseOrOccurrenceDate</span><span>productName</span>
+            <span>affectedArea</span><span>approximateDate</span><span>priceInfo</span>
+          </div>
+
+          <h4>riskReasons (fechado)</h4>
+          <div class="status-list">
+            <span>social_media</span><span>lawyer</span><span>procon</span><span>press</span>
+            <span>customer_loss_threat</span><span>public_exposure</span><span>other</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ERRORS -->
+      <section class="endpoint" id="errors">
+        <div class="endpoint-header">
+          <span class="method get" style="background:#6b7280;">REF</span>
+          <span class="path">Erros comuns</span>
+          <span class="summary">Consulta</span>
+        </div>
+        <div class="endpoint-body">
+          <table>
+            <tr><th>HTTP</th><th>Quando</th></tr>
+            <tr><td>401</td><td>Token ausente ou inválido</td></tr>
+            <tr><td>400</td><td>Payload inválido, loja inativa/desconhecida, transição malformada</td></tr>
+            <tr><td>404</td><td>Recurso não encontrado; GET /sac-cases sem id</td></tr>
+            <tr><td>409</td><td>Chamado duplicado, satisfação duplicada, conflito de estado</td></tr>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll('.endpoint-header').forEach((header) => {
+      header.addEventListener('click', () => {
+        header.parentElement.classList.toggle('open');
+      });
+    });
+  </script>
+</body>
+</html>

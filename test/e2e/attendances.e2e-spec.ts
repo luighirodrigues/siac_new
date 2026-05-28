@@ -222,26 +222,36 @@ describe('SAC Attendances (e2e)', () => {
       expect(response.body.reused).toBe(false);
       expect(response.body.attendance.status).toBe('started');
     });
+
+    it('handles concurrent createOrReuse for the same externalConversationId', async () => {
+      const [first, second] = await Promise.all([
+        request(app.getHttpServer())
+          .post('/sac-attendances')
+          .set(authHeader())
+          .send({ externalConversationId: 'conversation-concurrent' }),
+        request(app.getHttpServer())
+          .post('/sac-attendances')
+          .set(authHeader())
+          .send({ externalConversationId: 'conversation-concurrent' }),
+      ]);
+
+      expect([first.status, second.status].sort()).toEqual([200, 201]);
+
+      const openCount = await prisma.attendance.count({
+        where: {
+          externalConversationId: 'conversation-concurrent',
+          status: {
+            in: ['started', 'collecting_data', 'waiting_resolution', 'pesquisa_satisfacao'],
+          },
+        },
+      });
+
+      expect(openCount).toBe(1);
+    });
   });
 
   describe('GET /sac-attendances/by-external-conversation/:externalConversationId', () => {
-    it('returns most recent open attendance detail', async () => {
-      await prisma.attendance.create({
-        data: {
-          externalConversationId: 'conversation-open',
-          status: 'started',
-          lastSummary: 'Primeiro',
-        },
-      });
-
-      const latestOpen = await prisma.attendance.create({
-        data: {
-          externalConversationId: 'conversation-open',
-          status: 'waiting_resolution',
-          lastSummary: 'Mais recente aberto',
-        },
-      });
-
+    it('returns open attendance detail when one exists among closed cycles', async () => {
       await prisma.attendance.create({
         data: {
           externalConversationId: 'conversation-open',
@@ -250,12 +260,20 @@ describe('SAC Attendances (e2e)', () => {
         },
       });
 
+      const openAttendance = await prisma.attendance.create({
+        data: {
+          externalConversationId: 'conversation-open',
+          status: 'waiting_resolution',
+          lastSummary: 'Atendimento aberto atual',
+        },
+      });
+
       const response = await request(app.getHttpServer())
         .get('/sac-attendances/by-external-conversation/conversation-open')
         .set(authHeader())
         .expect(200);
 
-      expect(response.body.id).toBe(latestOpen.id);
+      expect(response.body.id).toBe(openAttendance.id);
       expect(response.body.status).toBe('waiting_resolution');
       expect(response.body.cases).toEqual([]);
       expect(response.body.media).toEqual([]);
@@ -337,6 +355,36 @@ describe('SAC Attendances (e2e)', () => {
         .expect(200);
 
       expect(response.body).toHaveLength(100);
+    });
+
+    it('paginates with page and limit', async () => {
+      const createdIds: string[] = [];
+      for (let index = 1; index <= 25; index += 1) {
+        const attendance = await prisma.attendance.create({
+          data: {
+            externalConversationId: `conversation-page-${index}`,
+          },
+        });
+        createdIds.push(attendance.id);
+      }
+
+      const page1 = await request(app.getHttpServer())
+        .get('/sac-attendances?page=1&limit=10')
+        .set(authHeader())
+        .expect(200);
+
+      const page2 = await request(app.getHttpServer())
+        .get('/sac-attendances?page=2&limit=10')
+        .set(authHeader())
+        .expect(200);
+
+      expect(page1.body).toHaveLength(10);
+      expect(page2.body).toHaveLength(10);
+      expect(page1.body[0].id).toBe(createdIds[24]);
+      expect(page2.body[0].id).toBe(createdIds[14]);
+      expect(page1.body.map((item: { id: string }) => item.id)).not.toEqual(
+        page2.body.map((item: { id: string }) => item.id),
+      );
     });
 
     it('filters by status', async () => {
@@ -521,6 +569,11 @@ describe('SAC Attendances (e2e)', () => {
     it('validates pagination and filters', async () => {
       await request(app.getHttpServer())
         .get('/sac-attendances?limit=0')
+        .set(authHeader())
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .get('/sac-attendances?page=0')
         .set(authHeader())
         .expect(400);
 

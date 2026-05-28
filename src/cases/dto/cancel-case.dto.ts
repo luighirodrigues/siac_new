@@ -1,15 +1,15 @@
 import { CaseCancellationReason } from '@prisma/client';
-import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CancelCaseDto {
   @IsEnum(CaseCancellationReason)
   caseCancellationReason!: CaseCancellationReason;
 
   @IsOptional()
-  @IsBoolean()
-  returnAttendanceToCollectingData?: boolean;
+  @IsString()
+  lastSummary?: string;
 
   @IsOptional()
   @IsBoolean()
-  cancelAttendanceIfNoUsefulDemand?: boolean;
+  returnAttendanceToCollectingData?: boolean;
 }

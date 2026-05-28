@@ -1,6 +1,7 @@
 import {
   CallHandler,
   ExecutionContext,
+  HttpException,
   Injectable,
   Logger,
   NestInterceptor,
@@ -8,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, tap, throwError } from 'rxjs';
 
 @Injectable()
 export class RequestLoggingInterceptor implements NestInterceptor {
@@ -26,18 +27,28 @@ export class RequestLoggingInterceptor implements NestInterceptor {
 
     const origin = this.hasIntegrationToken(request) ? 'n8n' : 'unknown';
 
+    const log = (statusCode: number) => {
+      this.logger.log(
+        JSON.stringify({
+          requestId,
+          method: request.method,
+          url: request.originalUrl,
+          statusCode,
+          durationMs: Date.now() - startedAt,
+          origin,
+        }),
+      );
+    };
+
     return next.handle().pipe(
       tap(() => {
-        this.logger.log(
-          JSON.stringify({
-            requestId,
-            method: request.method,
-            url: request.originalUrl,
-            statusCode: response.statusCode,
-            durationMs: Date.now() - startedAt,
-            origin,
-          }),
-        );
+        log(response.statusCode);
+      }),
+      catchError((error: unknown) => {
+        const statusCode =
+          error instanceof HttpException ? error.getStatus() : 500;
+        log(statusCode);
+        return throwError(() => error);
       }),
     );
   }

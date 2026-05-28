@@ -4,6 +4,7 @@ import {
   AttendanceStatus,
   Prisma,
 } from '@prisma/client';
+import { isUniqueConstraintError } from '../common/prisma/is-unique-constraint-error';
 import { PrismaService } from '../prisma/prisma.service';
 import { attendanceDetailInclude, AttendanceDetail } from './attendance-presenter';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
@@ -42,18 +43,7 @@ export class AttendancesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createOrReuse(dto: CreateAttendanceDto): Promise<{ attendance: AttendanceDetail; reused: boolean }> {
-    const reusable = await this.prisma.attendance.findFirst({
-      where: {
-        externalConversationId: dto.externalConversationId,
-        status: {
-          in: OPEN_STATUSES,
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: attendanceDetailInclude,
-    });
+    const reusable = await this.findOpenAttendance(dto.externalConversationId);
 
     if (reusable) {
       const updated = await this.prisma.attendance.update({
@@ -67,15 +57,50 @@ export class AttendancesService {
       return { attendance: updated, reused: true };
     }
 
-    const created = await this.prisma.attendance.create({
-      data: {
-        externalConversationId: dto.externalConversationId,
-        ...(dto.lastSummary !== undefined ? { lastSummary: dto.lastSummary } : {}),
+    try {
+      const created = await this.prisma.attendance.create({
+        data: {
+          externalConversationId: dto.externalConversationId,
+          ...(dto.lastSummary !== undefined ? { lastSummary: dto.lastSummary } : {}),
+        },
+        include: attendanceDetailInclude,
+      });
+
+      return { attendance: created, reused: false };
+    } catch (error) {
+      if (isUniqueConstraintError(error, ['externalConversationId'])) {
+        const existing = await this.findOpenAttendance(dto.externalConversationId);
+        if (existing) {
+          const updated =
+            dto.lastSummary !== undefined
+              ? await this.prisma.attendance.update({
+                  where: { id: existing.id },
+                  data: { lastSummary: dto.lastSummary },
+                  include: attendanceDetailInclude,
+                })
+              : existing;
+
+          return { attendance: updated, reused: true };
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  private async findOpenAttendance(externalConversationId: string) {
+    return this.prisma.attendance.findFirst({
+      where: {
+        externalConversationId,
+        status: {
+          in: OPEN_STATUSES,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
       include: attendanceDetailInclude,
     });
-
-    return { attendance: created, reused: false };
   }
 
   async findByExternalConversationId(externalConversationId: string): Promise<AttendanceDetail> {
@@ -136,7 +161,8 @@ export class AttendancesService {
     }
 
     const take = Math.min(query.limit ?? 20, 100);
-    const skip = query.offset ?? 0;
+    const page = query.page ?? 1;
+    const skip = (page - 1) * take;
 
     return this.prisma.attendance.findMany({
       where,

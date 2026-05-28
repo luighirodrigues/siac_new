@@ -31,8 +31,8 @@ export class ListAttendancesQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(0)
-  offset?: number;
+  @Min(1)
+  page?: number;
 
   @IsOptional()
   @Type(() => Date)

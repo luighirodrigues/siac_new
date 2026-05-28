@@ -87,9 +87,10 @@ export class CaseTransitionService {
             closedWithoutSatisfaction: false,
             satisfactionRequestedAt: null,
             satisfactionRespondedAt: null,
+            ...(dto.lastSummary !== undefined ? { lastSummary: dto.lastSummary } : {}),
           },
         });
-      } else if (dto.cancelAttendanceIfNoUsefulDemand === true) {
+      } else {
         const activeCasesCount = await tx.sacCase.count({
           where: {
             attendanceId: caseItem.attendanceId,
@@ -100,14 +101,25 @@ export class CaseTransitionService {
         });
 
         if (activeCasesCount === 0) {
+          const cancellationReason =
+            dto.caseCancellationReason === 'operational_duplicate'
+              ? 'operational_duplicate'
+              : 'other';
+
           await tx.attendance.update({
             where: { id: caseItem.attendanceId },
             data: {
               status: 'cancelled',
-              cancellationReason: 'operational_duplicate',
+              cancellationReason,
               closedAt: now,
               closedWithoutSatisfaction: false,
+              ...(dto.lastSummary !== undefined ? { lastSummary: dto.lastSummary } : {}),
             },
+          });
+        } else if (dto.lastSummary !== undefined) {
+          await tx.attendance.update({
+            where: { id: caseItem.attendanceId },
+            data: { lastSummary: dto.lastSummary },
           });
         }
       }

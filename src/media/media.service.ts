@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Media } from '@prisma/client';
+import { isUniqueConstraintError } from '../common/prisma/is-unique-constraint-error';
 import { AttendancesService } from '../attendances/attendances.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMediaDto } from './dto/create-media.dto';
@@ -60,22 +61,57 @@ export class MediaService {
       }
     }
 
-    const media = await this.prisma.media.create({
-      data: {
-        attendanceId,
-        caseId: dto.caseId ?? null,
-        externalMediaId: dto.externalMediaId,
-        storageProvider,
-        sourceUrl: dto.sourceUrl ?? null,
-        storageStatus: dto.storageStatus ?? null,
-        internalObjectKey: dto.internalObjectKey ?? null,
-        mimeType: dto.mimeType ?? null,
-        size: dto.size ?? null,
-        purpose: dto.purpose ?? null,
-      },
+    const result = await this.createMediaRecord({
+      attendanceId,
+      caseId: dto.caseId ?? null,
+      externalMediaId: dto.externalMediaId,
+      storageProvider,
+      sourceUrl: dto.sourceUrl ?? null,
+      storageStatus: dto.storageStatus ?? null,
+      internalObjectKey: dto.internalObjectKey ?? null,
+      mimeType: dto.mimeType ?? null,
+      size: dto.size ?? null,
+      purpose: dto.purpose,
     });
 
-    return { media, created: true };
+    return result;
+  }
+
+  private async createMediaRecord(data: {
+    attendanceId: string;
+    caseId: string | null;
+    externalMediaId: string;
+    storageProvider: string;
+    sourceUrl: string | null;
+    storageStatus: string | null;
+    internalObjectKey: string | null;
+    mimeType: string | null;
+    size: number | null;
+    purpose?: CreateMediaDto['purpose'];
+  }): Promise<{ media: Media; created: boolean }> {
+    try {
+      const media = await this.prisma.media.create({ data });
+      return { media, created: true };
+    } catch (error) {
+      if (
+        isUniqueConstraintError(error, ['storageProvider', 'externalMediaId'])
+      ) {
+        const existing = await this.prisma.media.findUnique({
+          where: {
+            storageProvider_externalMediaId: {
+              storageProvider: data.storageProvider,
+              externalMediaId: data.externalMediaId,
+            },
+          },
+        });
+
+        if (existing) {
+          return { media: existing, created: false };
+        }
+      }
+
+      throw error;
+    }
   }
 
   private async resolveAttendanceId(dto: CreateMediaDto): Promise<string> {

@@ -10,6 +10,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { isUniqueConstraintError } from '../common/prisma/is-unique-constraint-error';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProtocolService } from './protocol.service';
 import {
@@ -104,7 +105,7 @@ export function toCaseResponse(caseItem: CaseReadEntity) {
     },
     replacedBy: caseItem.replacedByCase
       ? {
-          id: caseItem.replacedByCase.id,
+          caseId: caseItem.replacedByCase.id,
           protocol: caseItem.replacedByCase.protocol,
           status: caseItem.replacedByCase.status,
         }
@@ -199,21 +200,19 @@ export class CasesService {
         (dto.needsHumanReview ?? false) || missingRequiredFields.length > 0;
       const normalizedRiskFlag = (dto.riskFlag ?? false) || riskReasons.length > 0;
 
-      const createdCase = await tx.sacCase.create({
-        data: {
-          attendanceId: dto.attendanceId,
-          protocol,
-          category: dto.category,
-          description: dto.description,
-          status,
-          storeId: dto.storeId ?? null,
-          rawStoreMention: dto.rawStoreMention ?? null,
-          needsHumanReview: normalizedNeedsHumanReview,
-          missingRequiredFields,
-          riskFlag: normalizedRiskFlag,
-          riskReasons,
-          sentToDkwAt: dto.markAsSentToDkw ? now : null,
-        },
+      const createdCase = await this.createCaseRecord(tx, {
+        attendanceId: dto.attendanceId,
+        protocol,
+        category: dto.category,
+        description: dto.description,
+        status,
+        storeId: dto.storeId ?? null,
+        rawStoreMention: dto.rawStoreMention ?? null,
+        needsHumanReview: normalizedNeedsHumanReview,
+        missingRequiredFields,
+        riskFlag: normalizedRiskFlag,
+        riskReasons,
+        sentToDkwAt: dto.markAsSentToDkw ? now : null,
       });
 
       await tx.attendance.update({
@@ -312,5 +311,20 @@ export class CasesService {
     }
 
     return caseItem;
+  }
+
+  private async createCaseRecord(
+    tx: Prisma.TransactionClient,
+    data: Prisma.SacCaseUncheckedCreateInput,
+  ) {
+    try {
+      return await tx.sacCase.create({ data });
+    } catch (error) {
+      if (isUniqueConstraintError(error, ['attendanceId'])) {
+        throw new ConflictException('Attendance already has a non-cancelled case');
+      }
+
+      throw error;
+    }
   }
 }

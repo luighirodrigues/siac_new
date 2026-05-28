@@ -387,6 +387,30 @@ describe('SAC Media (e2e)', () => {
       expect(unchangedCase.status).toBe('registered');
     });
 
+    it('handles concurrent duplicate media registration idempotently', async () => {
+      const attendance = await createAttendance(prisma, 'started');
+      const payload = {
+        attendanceId: attendance.id,
+        ...validMediaPayload({ externalMediaId: 'concurrent-media-id' }),
+      };
+
+      const [first, second] = await Promise.all([
+        request(app.getHttpServer()).post('/sac-media').set(authHeader()).send(payload),
+        request(app.getHttpServer()).post('/sac-media').set(authHeader()).send(payload),
+      ]);
+
+      expect([first.status, second.status].sort()).toEqual([200, 201]);
+      expect(first.body.media.id).toBe(second.body.media.id);
+
+      const count = await prisma.media.count({
+        where: {
+          storageProvider: 'external',
+          externalMediaId: 'concurrent-media-id',
+        },
+      });
+      expect(count).toBe(1);
+    });
+
     it('requires either attendanceId or externalConversationId', async () => {
       await request(app.getHttpServer())
         .post('/sac-media')

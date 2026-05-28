@@ -5,6 +5,7 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/configure-app';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { authHeader } from '../helpers/auth';
+import { resetDatabase } from '../helpers/database';
 import { createActiveStore } from '../helpers/fixtures';
 
 jest.setTimeout(30000);
@@ -48,6 +49,10 @@ describe('SAC Cases Reads (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(async () => {
+    await resetDatabase(prisma);
   });
 
   describe('GET /sac-cases/:id', () => {
@@ -219,7 +224,7 @@ describe('SAC Cases Reads (e2e)', () => {
       expect(response.body.id).toBe(cancelled.id);
       expect(response.body.replacedBy).toEqual(
         expect.objectContaining({
-          id: replacement.id,
+          caseId: replacement.id,
           protocol: replacement.protocol,
           status: replacement.status,
         }),
