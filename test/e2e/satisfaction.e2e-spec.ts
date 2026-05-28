@@ -7,6 +7,7 @@ import { configureApp } from '../../src/configure-app';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { authHeader } from '../helpers/auth';
 import { resetDatabase } from '../helpers/database';
+import { configureTestEnvironment } from '../helpers/environment';
 
 jest.setTimeout(30000);
 
@@ -16,9 +17,7 @@ type TestApp = {
 };
 
 async function createSatisfactionTestApp(): Promise<TestApp> {
-  process.env.N8N_INTEGRATION_TOKEN = 'test-token';
-  process.env.DATABASE_URL =
-    'postgresql://postgres:postgres@localhost:5432/siac_new_test?schema=public';
+  configureTestEnvironment();
 
   const modulePath = '../../src/satisfaction/satisfaction.module';
   const { SatisfactionModule } = (await import(modulePath)) as {

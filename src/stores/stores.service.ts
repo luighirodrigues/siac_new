@@ -19,6 +19,7 @@ export class StoresService {
       city: store.city,
       state: store.state,
       address: store.address,
+      operation: store.operation,
       active: store.active,
       aliases: store.aliases as string[],
     }));

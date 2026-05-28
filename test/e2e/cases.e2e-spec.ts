@@ -11,6 +11,7 @@ import { configureApp } from '../../src/configure-app';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { authHeader } from '../helpers/auth';
 import { resetDatabase } from '../helpers/database';
+import { configureTestEnvironment } from '../helpers/environment';
 import { createActiveStore } from '../helpers/fixtures';
 
 jest.setTimeout(30000);
@@ -33,8 +34,7 @@ type TestApp = {
 };
 
 async function createCasesTestApp(): Promise<TestApp> {
-  process.env.N8N_INTEGRATION_TOKEN = 'test-token';
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/siac_new_test?schema=public';
+  configureTestEnvironment();
 
   const modulePath = '../../src/cases/cases.module';
   const { CasesModule } = (await import(modulePath)) as {
@@ -184,7 +184,7 @@ describe('SAC Cases (e2e)', () => {
         .expect(400);
     });
 
-    it.each(['RH', 'DP', 'CURRICULO', 'FORNECEDOR', 'INFORMACAO_LOJA'] as AttendanceCategory[])(
+    it.each(['FALAR_RH', 'FALAR_DP', 'CURRICULO', 'FORNECEDOR', 'INFORMACAO_LOJA'] as AttendanceCategory[])(
       'rejects category that should not create case: %s',
       async (category) => {
         const store = await createActiveStore(prisma, uniqueCode(`no-case-${category}`));

@@ -31,8 +31,8 @@ enum AttendanceCategory {
   PRODUTO_ESTRAGADO
   PRODUTO_AVARIA
   PRODUTO_EM_FALTA
-  RH
-  DP
+  FALAR_RH
+  FALAR_DP
   CURRICULO
   FORNECEDOR
   PRECO_PRODUTO
@@ -69,6 +69,7 @@ model Store {
   city              String
   state             String
   address           String
+  operation         String?
   active            Boolean   @default(true)
   aliases           Json
   createdAt         DateTime  @default(now())

@@ -10,6 +10,7 @@ type StoreSeed = {
   city: string;
   state: string;
   address: string;
+  operation: string | null;
   active: boolean;
   aliases: string[];
 };
@@ -54,6 +55,7 @@ function parseStoresCsv(filePath: string): StoreSeed[] {
         city: row.city,
         state: row.state,
         address: row.address,
+        operation: row.operation?.trim() || null,
         active: parseBoolean(row.active),
         aliases: parseAliases(row.aliases),
       };

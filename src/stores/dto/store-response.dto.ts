@@ -5,6 +5,7 @@ export class StoreResponseDto {
   city!: string;
   state!: string;
   address!: string;
+  operation!: string | null;
   active!: boolean;
   aliases!: string[];
 }

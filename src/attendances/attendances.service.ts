@@ -31,8 +31,8 @@ const CASE_REQUIRED_CATEGORIES: AttendanceCategory[] = [
 ];
 
 const ORIENTATIVE_CATEGORIES: AttendanceCategory[] = [
-  'RH',
-  'DP',
+  'FALAR_RH',
+  'FALAR_DP',
   'CURRICULO',
   'FORNECEDOR',
   'INFORMACAO_LOJA',

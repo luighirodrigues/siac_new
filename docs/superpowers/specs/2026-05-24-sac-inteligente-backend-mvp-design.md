@@ -139,8 +139,8 @@ Categories that generate Cases:
 
 Categories that do not generate Cases in the normal flow:
 
-- `RH`
-- `DP`
+- `FALAR_RH`
+- `FALAR_DP`
 - `CURRICULO`
 - `FORNECEDOR`
 - `INFORMACAO_LOJA`
@@ -174,7 +174,7 @@ Rules:
 - Cancelled Cases can remain in the same Attendance history for operational correction.
 - `POST /sac-cases` refuses creation if the Attendance already has a non-cancelled Case.
 - `POST /sac-cases` is allowed only when Attendance is `started` or `collecting_data`.
-- `POST /sac-cases` must reject categories that do not generate Cases in the normal flow: `RH`, `DP`, `CURRICULO`, `FORNECEDOR`, and `INFORMACAO_LOJA`.
+- `POST /sac-cases` must reject categories that do not generate Cases in the normal flow: `FALAR_RH`, `FALAR_DP`, `CURRICULO`, `FORNECEDOR`, and `INFORMACAO_LOJA`.
 - `POST /sac-cases` can create `registered` by default or `sent_to_dkw` when `markAsSentToDkw: true`.
 - Creating any Case moves the Attendance to `waiting_resolution`.
 - `description` is required, synthesized by n8n, minimum 10 characters after trim, maximum 2000 characters.

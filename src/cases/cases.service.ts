@@ -31,8 +31,8 @@ const CASE_CREATION_CATEGORIES: AttendanceCategory[] = [
 ];
 
 const NON_CASE_CATEGORIES: AttendanceCategory[] = [
-  'RH',
-  'DP',
+  'FALAR_RH',
+  'FALAR_DP',
   'CURRICULO',
   'FORNECEDOR',
   'INFORMACAO_LOJA',

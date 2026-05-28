@@ -1,15 +1,13 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { ProtocolService } from './protocol.service';
-
-const TEST_DATABASE_URL =
-  'postgresql://postgres:postgres@localhost:5432/siac_new_test?schema=public';
+import { configureTestEnvironment } from '../../test/helpers/environment';
 
 describe('ProtocolService', () => {
   let prisma: PrismaService;
   let service: ProtocolService;
 
   beforeAll(async () => {
-    process.env.DATABASE_URL = TEST_DATABASE_URL;
+    configureTestEnvironment();
     prisma = new PrismaService();
     await prisma.$connect();
     service = new ProtocolService(prisma);

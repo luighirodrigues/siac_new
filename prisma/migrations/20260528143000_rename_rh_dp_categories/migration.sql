@@ -1,0 +1,2 @@
+ALTER TYPE "AttendanceCategory" RENAME VALUE 'RH' TO 'FALAR_RH';
+ALTER TYPE "AttendanceCategory" RENAME VALUE 'DP' TO 'FALAR_DP';

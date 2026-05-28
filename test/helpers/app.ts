@@ -3,10 +3,10 @@ import { Test } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/configure-app';
 import { PrismaService } from '../../src/prisma/prisma.service';
+import { configureTestEnvironment } from './environment';
 
 export async function createTestApp(): Promise<{ app: INestApplication; prisma: PrismaService }> {
-  process.env.N8N_INTEGRATION_TOKEN = 'test-token';
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/siac_new_test?schema=public';
+  configureTestEnvironment();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication();
   configureApp(app);

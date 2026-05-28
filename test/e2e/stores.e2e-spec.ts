@@ -70,7 +70,7 @@ describe('GET /stores (e2e)', () => {
     expect(Array.isArray(response.body)).toBe(true);
   });
 
-  it('includes id, internalStoreCode, name, city, state, address, active, aliases', async () => {
+  it('includes id, internalStoreCode, name, city, state, address, active, aliases, operation', async () => {
     const store = await createActiveStore(prisma, '001');
 
     const response = await request(app.getHttpServer())
@@ -88,6 +88,7 @@ describe('GET /stores (e2e)', () => {
       address: 'Rua 001',
       active: true,
       aliases: ['loja 001'],
+      operation: 'Segunda a sabado das 8h as 22h; domingo das 9h as 20h',
     });
   });
 });

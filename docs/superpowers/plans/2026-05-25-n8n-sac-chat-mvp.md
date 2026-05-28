@@ -597,8 +597,8 @@ return [{
     'PRODUTO_ESTRAGADO',
     'PRODUTO_AVARIA',
     'PRODUTO_EM_FALTA',
-    'RH',
-    'DP',
+    'FALAR_RH',
+    'FALAR_DP',
     'CURRICULO',
     'FORNECEDOR',
     'PRECO_PRODUTO',
@@ -614,8 +614,8 @@ return [{
     'PRECO_PRODUTO'
   ],
   orientativeCategories: [
-    'RH',
-    'DP',
+    'FALAR_RH',
+    'FALAR_DP',
     'CURRICULO',
     'FORNECEDOR',
     'INFORMACAO_LOJA'
