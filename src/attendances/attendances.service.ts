@@ -199,6 +199,10 @@ export class AttendancesService {
       return this.cancelAttendance(attendance, dto);
     }
 
+    if (dto.status === 'pesquisa_satisfacao') {
+      return this.requestSatisfactionWithoutCase(attendance, dto);
+    }
+
     if (dto.status === 'fechado') {
       if (dto.closedWithoutSatisfaction === true) {
         return this.closeWithoutSatisfaction(attendance, dto);
@@ -256,6 +260,41 @@ export class AttendancesService {
   }
 
   private async closeWithoutCase(attendance: AttendanceDetail, dto: PatchAttendanceDto) {
+    this.assertCanCompleteWithoutCase(attendance, dto);
+
+    return this.prisma.attendance.update({
+      where: { id: attendance.id },
+      data: {
+        status: 'fechado',
+        detectedCategory: dto.detectedCategory,
+        lastSummary: dto.lastSummary,
+        closedAt: new Date(),
+        closedWithoutSatisfaction: false,
+        cancellationReason: null,
+      },
+      include: attendanceDetailInclude,
+    });
+  }
+
+  private async requestSatisfactionWithoutCase(attendance: AttendanceDetail, dto: PatchAttendanceDto) {
+    this.assertCanCompleteWithoutCase(attendance, dto);
+
+    return this.prisma.attendance.update({
+      where: { id: attendance.id },
+      data: {
+        status: 'pesquisa_satisfacao',
+        detectedCategory: dto.detectedCategory,
+        lastSummary: dto.lastSummary,
+        satisfactionRequestedAt: attendance.satisfactionRequestedAt ?? new Date(),
+        closedAt: null,
+        closedWithoutSatisfaction: false,
+        cancellationReason: null,
+      },
+      include: attendanceDetailInclude,
+    });
+  }
+
+  private assertCanCompleteWithoutCase(attendance: AttendanceDetail, dto: PatchAttendanceDto) {
     if (attendance.status === 'cancelled' || attendance.status === 'fechado') {
       throw new BadRequestException('Attendance is already closed');
     }
@@ -284,19 +323,6 @@ export class AttendancesService {
     if (hasNonCancelledCase) {
       throw new BadRequestException('Attendance has active case');
     }
-
-    return this.prisma.attendance.update({
-      where: { id: attendance.id },
-      data: {
-        status: 'fechado',
-        detectedCategory: dto.detectedCategory,
-        lastSummary: dto.lastSummary,
-        closedAt: new Date(),
-        closedWithoutSatisfaction: false,
-        cancellationReason: null,
-      },
-      include: attendanceDetailInclude,
-    });
   }
 
   private async closeWithoutSatisfaction(attendance: AttendanceDetail, dto: PatchAttendanceDto) {

@@ -39,6 +39,16 @@ function parseAliases(value: string): string[] {
   return parsed;
 }
 
+function parseNullableString(value: string | undefined): string | null {
+  const normalized = value?.trim();
+
+  if (!normalized || normalized.toLowerCase() === 'null') {
+    return null;
+  }
+
+  return normalized;
+}
+
 function parseStoresCsv(filePath: string): StoreSeed[] {
   const [headerLine, ...lines] = readFileSync(filePath, 'utf8').trim().split(/\r?\n/);
   const headers = headerLine.split(';');
@@ -55,7 +65,7 @@ function parseStoresCsv(filePath: string): StoreSeed[] {
         city: row.city,
         state: row.state,
         address: row.address,
-        operation: row.operation?.trim() || null,
+        operation: parseNullableString(row.operation),
         active: parseBoolean(row.active),
         aliases: parseAliases(row.aliases),
       };

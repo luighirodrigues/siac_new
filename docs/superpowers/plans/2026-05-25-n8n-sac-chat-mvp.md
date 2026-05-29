@@ -744,7 +744,7 @@ try {
 }
 
 const context = $('Build SAC Agent Context').item.json;
-const allowedActions = ['ask_more_info', 'close_without_case', 'create_case', 'satisfaction_misdirected', 'safe_fallback'];
+const allowedActions = ['ask_more_info', 'answer_without_case', 'close_without_case', 'create_case', 'satisfaction_misdirected', 'safe_fallback'];
 const allowedCategories = context.allowedCategories;
 const caseCategories = context.caseCategories;
 const orientativeCategories = context.orientativeCategories;
@@ -777,6 +777,11 @@ if (decision.action === 'create_case') {
   if (description.length < 10 || description.length > 2000) errors.push('invalid description length');
 }
 
+if (decision.action === 'answer_without_case') {
+  if (!orientativeCategories.includes(decision.category)) errors.push('category cannot be answered without case');
+  if (!decision.lastSummary || decision.lastSummary.trim().length < 10) errors.push('answer_without_case requires useful lastSummary');
+}
+
 if (decision.action === 'close_without_case') {
   if (!orientativeCategories.includes(decision.category)) errors.push('category cannot close without case');
   if (!decision.lastSummary || decision.lastSummary.trim().length < 10) errors.push('close_without_case requires useful lastSummary');
@@ -802,7 +807,7 @@ if (Array.isArray(riskReasons)) {
 const riskFlag = Boolean(decision.caseDraft?.riskFlag ?? decision.riskFlag);
 if (riskFlag && riskReasons.length === 0) errors.push('riskFlag requires riskReasons');
 
-if (attendanceStatus === 'pesquisa_satisfacao' && ['create_case', 'close_without_case'].includes(decision.action)) {
+if (attendanceStatus === 'pesquisa_satisfacao' && ['create_case', 'answer_without_case', 'close_without_case'].includes(decision.action)) {
   errors.push('cannot mutate SAC flow during satisfaction');
 }
 
@@ -872,6 +877,7 @@ Name: Route SAC Decision
 Value: {{$json.decision.action}}
 Cases:
 - ask_more_info
+- answer_without_case
 - close_without_case
 - create_case
 - satisfaction_misdirected
@@ -912,16 +918,16 @@ Expected: no backend mutation beyond Attendance/Media for these actions.
 
 ---
 
-### Task 11: Close Attendance Without Case
+### Task 11: Answer Without Case, Then Ask If Customer Needs Anything Else
 
 **Artifacts:**
 - Modify n8n workflow: `Peruzzo SIAC - IA Atendimento MVP`
 
-MVP decision: orientative attendances closed without Case do not trigger satisfaction research. Satisfaction is reserved for the Case/human-resolution flow and can be expanded later if product wants feedback on simple guidance.
+MVP decision update: orientative attendances must not close immediately after the informational answer. The workflow answers the customer, waits briefly, asks if they need anything else, and only moves to satisfaction if the customer later says they do not need more help.
 
-- [x] **Step 1: Send customer response**
+- [ ] **Step 1: Add `answer_without_case` branch**
 
-In `close_without_case` branch, first send:
+In `answer_without_case` branch, first send the AI response:
 
 ```json
 {
@@ -930,12 +936,32 @@ In `close_without_case` branch, first send:
 }
 ```
 
-- [x] **Step 2: Restore decision envelope after DKW send**
+- [ ] **Step 2: Wait 10 seconds**
 
-Add Code node after the DKW send node:
+Add Wait node:
 
 ```text
-Name: Restore Close Without Case Envelope
+Name: Wait Before Anything Else Question
+Amount: 10 seconds
+```
+
+- [ ] **Step 3: Ask if customer needs anything else**
+
+Add DKW send message:
+
+```json
+{
+  "jid": "={{$('Validate SAC Agent Decision').item.json.context.message.raw.jid}}",
+  "text": "Posso ajudar com mais alguma coisa?"
+}
+```
+
+- [ ] **Step 4: Restore decision envelope after follow-up question**
+
+Add Code node:
+
+```text
+Name: Restore Answer Without Case Envelope
 ```
 
 Code:
@@ -944,12 +970,12 @@ Code:
 return $('Validate SAC Agent Decision').item.json;
 ```
 
-- [x] **Step 3: Patch Attendance**
+- [ ] **Step 5: Patch Attendance back to collecting_data**
 
 Add HTTP Request node:
 
 ```text
-Name: Backend - Close Attendance Without Case
+Name: Backend - Attendance Awaiting More Help Confirmation
 Method: PATCH
 URL: {{$env.SIAC_BACKEND_BASE_URL}}/sac-attendances/{{$json.context.attendance.id}}
 Authentication/Header:
@@ -961,13 +987,26 @@ Body:
 
 ```json
 {
-  "status": "fechado",
+  "status": "collecting_data",
+  "lastSummary": "={{$json.decision.lastSummary + ' Aguardando resposta do cliente se deseja algo a mais.'}}"
+}
+```
+
+- [ ] **Step 6: Add `close_without_case` branch for customer negative answer**
+
+When the customer later answers that they do not need anything else, the AI should choose `close_without_case`. This branch must not close the Attendance directly. It should move the Attendance to `pesquisa_satisfacao`, send the satisfaction question, and route/move the DKW contact to the Evaluation queue if the Evaluation webhook depends on queue id.
+
+Backend patch body:
+
+```json
+{
+  "status": "pesquisa_satisfacao",
   "detectedCategory": "={{$json.decision.category}}",
   "lastSummary": "={{$json.decision.lastSummary}}"
 }
 ```
 
-- [x] **Step 4: Test orientative flow**
+- [ ] **Step 7: Test orientative flow**
 
 Payload text:
 
@@ -979,7 +1018,12 @@ Expected:
 
 - AI chooses `INFORMACAO_LOJA` if it can answer from validated store context;
 - customer receives answer;
-- Attendance is closed with no Case.
+- after 10 seconds, customer receives "Posso ajudar com mais alguma coisa?";
+- Attendance remains open as `collecting_data`;
+- if customer answers "nao", AI chooses `close_without_case`;
+- Attendance moves to `pesquisa_satisfacao`;
+- customer receives satisfaction question;
+- no Case is created.
 
 ---
 

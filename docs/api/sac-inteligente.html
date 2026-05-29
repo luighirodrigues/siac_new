@@ -424,7 +424,15 @@
 }</pre>
           <p>Categorias orientativas: <code>FALAR_RH</code>, <code>FALAR_DP</code>, <code>CURRICULO</code>, <code>FORNECEDOR</code>, <code>INFORMACAO_LOJA</code>. Rejeita se já existir chamado não cancelado.</p>
 
-          <h4>3 — Fechar sem satisfação (pesquisa_satisfacao)</h4>
+          <h4>3 — Solicitar satisfação sem chamado (categoria orientativa)</h4>
+          <pre>{
+  "status": "pesquisa_satisfacao",
+  "detectedCategory": "INFORMACAO_LOJA",
+  "lastSummary": "Cliente recebeu orientação e confirmou que não deseja mais nada."
+}</pre>
+          <p>Mantém o atendimento aberto em <code>pesquisa_satisfacao</code>, preenche <code>satisfactionRequestedAt</code> e não cria chamado.</p>
+
+          <h4>4 — Fechar sem satisfação (pesquisa_satisfacao)</h4>
           <pre>{
   "status": "fechado",
   "closedWithoutSatisfaction": true

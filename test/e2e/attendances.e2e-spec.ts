@@ -782,6 +782,34 @@ describe('SAC Attendances (e2e)', () => {
       expect(response.body.closedAt).not.toBeNull();
     });
 
+    it('requests satisfaction without case for orientative category and lastSummary', async () => {
+      const attendance = await prisma.attendance.create({
+        data: {
+          externalConversationId: 'patch-satisfaction-without-case',
+          status: 'collecting_data',
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .patch(`/sac-attendances/${attendance.id}`)
+        .set(authHeader())
+        .send({
+          status: 'pesquisa_satisfacao',
+          detectedCategory: 'INFORMACAO_LOJA',
+          lastSummary: 'Cliente recebeu informacao de loja e confirmou que nao deseja mais nada.',
+        })
+        .expect(200);
+
+      expect(response.body.status).toBe('pesquisa_satisfacao');
+      expect(response.body.detectedCategory).toBe('INFORMACAO_LOJA');
+      expect(response.body.lastSummary).toBe(
+        'Cliente recebeu informacao de loja e confirmou que nao deseja mais nada.',
+      );
+      expect(response.body.satisfactionRequestedAt).not.toBeNull();
+      expect(response.body.closedAt).toBeNull();
+      expect(response.body.closedWithoutSatisfaction).toBe(false);
+    });
+
     it('requires detectedCategory on close without case', async () => {
       const attendance = await prisma.attendance.create({
         data: {

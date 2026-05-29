@@ -150,6 +150,7 @@ Webhook IA
 -> Deterministic validation
 -> Switch by action
    -> ask_more_info
+   -> answer_without_case
    -> close_without_case
    -> create_case
    -> satisfaction_misdirected
@@ -271,7 +272,7 @@ Protocol sent payload:
 
 `sentAt` should be the moment the DKW send step succeeds. If the workflow cannot provide it, the backend can fill the backend receive time, but the preferred MVP workflow sends the timestamp explicitly.
 
-### Close Attendance Without Case
+### Request Satisfaction Without Case
 
 Call:
 
@@ -283,13 +284,13 @@ Payload:
 
 ```json
 {
-  "status": "fechado",
+  "status": "pesquisa_satisfacao",
   "detectedCategory": "INFORMACAO_LOJA",
-  "lastSummary": "Cliente recebeu informacao validada da loja."
+  "lastSummary": "Cliente recebeu informacao validada da loja e confirmou que nao deseja mais nada."
 }
 ```
 
-Use this for orientative categories that do not create Cases.
+Use this only after an orientative answer when the customer confirms that they do not need anything else. The informational answer itself uses `answer_without_case` and keeps the Attendance in `collecting_data`.
 
 ## Main AI Agent Contract
 
@@ -309,6 +310,7 @@ The AI agent returns only JSON. The n8n workflow must reject non-JSON or invalid
 Allowed actions:
 
 - `ask_more_info`
+- `answer_without_case`
 - `close_without_case`
 - `create_case`
 - `satisfaction_misdirected`

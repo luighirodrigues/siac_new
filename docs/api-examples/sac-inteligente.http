@@ -47,6 +47,20 @@ Content-Type: application/json
 }
 
 ###
+# Request Satisfaction without Case
+# PATCH /sac-attendances/:id - orientative category, no active case
+# Requires: status=pesquisa_satisfacao, detectedCategory (orientative), lastSummary
+PATCH {{baseUrl}}/sac-attendances/attendance-id-aqui
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "pesquisa_satisfacao",
+  "detectedCategory": "INFORMACAO_LOJA",
+  "lastSummary": "Cliente recebeu orientacao e confirmou que nao deseja mais nada"
+}
+
+###
 # Cancel Attendance
 # PATCH /sac-attendances/:id — allowed from started or collecting_data
 # Requires: status=cancelled, cancellationReason
